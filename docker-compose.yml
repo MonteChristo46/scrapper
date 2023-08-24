@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: always
+    volumes:
+      - ./data:/data/db
+    ports:
+      - 27017:27017
+    networks:
+      - metabase-network
+
+  metabase:
+    image: metabase/metabase
+    container_name: metabase
+    restart: always
+    volumes:
+     - ./metabase-data:/metabase-data
+    ports:
+     - 3001:3000
+    depends_on:
+     - mongodb
+     - mysql
+     - fastapi
+    networks:
+     - metabase-network
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi
+    restart: always
+    ports:
+      - 8000:8000
+    networks:
+      - metabase-network
+    depends_on:
+      - mongodb
+      - mysql
+
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_DATABASE=listings
+      - MYSQL_USER=admin
+      - MYSQL_PASSWORD=admin
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 3306:3306
+    networks:
+      - metabase-network
+
+
+networks:
+  metabase-network:
+    driver: bridge
